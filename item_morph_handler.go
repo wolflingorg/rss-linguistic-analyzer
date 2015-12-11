@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"net"
@@ -23,6 +25,7 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 
 			FreeLingConnMap[worker_id][item.Lang], err = connectToFreeLing(FreeLingHostsByLang[item.Lang])
 			if err == nil {
+				// TODO delete this
 				fmt.Printf("Connect... %d\n", worker_id)
 			} else {
 				FreeLingConnMap[worker_id][item.Lang] = nil
@@ -33,13 +36,23 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 		word_map := getMorphResult(item.Title+" "+item.Content, FreeLingConnMap[worker_id][item.Lang])
 
 		if len(word_map) == 0 {
+			// TODO delete this
 			fmt.Printf("\tWorker %d FAILED\n", worker_id)
 			return
 		}
 
+		// word checksum
+		var word_checksum []string
+		for _, value := range word_map {
+			hasher := md5.New()
+			hasher.Write([]byte(value.Word))
+			word_checksum = append(word_checksum, hex.EncodeToString(hasher.Sum(nil)))
+		}
+
 		// update news info
 		n.Update(bson.M{"_id": item.Id}, bson.M{"$set": bson.M{
-			"wordmap": word_map,
+			"wordmap":      word_map,
+			"wordchecksum": word_checksum,
 		}})
 
 		// TODO delete this
@@ -61,7 +74,7 @@ func getMorphResult(msg string, c net.Conn) (result []MapItem) {
 
 		if words != nil && len(words) > 2 {
 			if findInWordMap(result, words[1]) == false {
-				if strings.HasPrefix(words[2], "A") || strings.HasPrefix(words[2], "N") || strings.HasPrefix(words[2], "V") || strings.HasPrefix(words[2], "Q") {
+				if strings.HasPrefix(words[2], "A") || strings.HasPrefix(words[2], "N") || strings.HasPrefix(words[2], "V") || strings.HasPrefix(words[2], "Q") || strings.HasPrefix(words[2], "W") {
 					result = append(result, MapItem{
 						Word:  words[1],
 						Freq:  1,
