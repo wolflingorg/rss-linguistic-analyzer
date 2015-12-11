@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -13,27 +12,17 @@ import (
 
 func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	n := db.C("news")
-	var err error
 
 	// check that work.Data equal Item interface
 	if item, ok := work.Data.(Item); ok {
-		// connect to FreeLing
-		if FreeLingConnMap[worker_id][item.Lang] == nil {
-			if FreeLingConnMap[worker_id] == nil {
-				FreeLingConnMap[worker_id] = make(map[string]net.Conn)
-			}
-
-			FreeLingConnMap[worker_id][item.Lang], err = connectToFreeLing(FreeLingHostsByLang[item.Lang])
-			if err == nil {
-				// TODO delete this
-				fmt.Printf("Connect... %d\n", worker_id)
-			} else {
-				FreeLingConnMap[worker_id][item.Lang] = nil
-				return
-			}
+		c, err := getConnection(worker_id, item.Lang)
+		if err != nil {
+			// TODO delete this
+			fmt.Printf("\tWorker %d connection ERROR\n", worker_id)
+			return
 		}
 
-		word_map := getMorphResult(item.Title+" "+item.Content, FreeLingConnMap[worker_id][item.Lang])
+		word_map := getWordMap(item.Title+" "+item.Content, c)
 
 		if len(word_map) == 0 {
 			// TODO delete this
@@ -60,11 +49,9 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	}
 }
 
-func getMorphResult(msg string, c net.Conn) (result []MapItem) {
-	fmt.Fprintf(c, "%s%c", msg, '\x00')
-	status, err := bufio.NewReader(c).ReadString('\x00')
+func getWordMap(msg string, c net.Conn) (result []MapItem) {
+	status, err := getMorphResult(msg, c)
 	if err != nil {
-		fmt.Println(err)
 		return nil
 	}
 
@@ -99,11 +86,20 @@ func findInWordMap(m []MapItem, s string) bool {
 	return false
 }
 
-func connectToFreeLing(host string) (c net.Conn, err error) {
-	c, err = net.Dial("tcp", host)
-	if err != nil {
-		fmt.Println(err)
-		return
+func getConnection(worker_id int, lang string) (net.Conn, error) {
+	var err error
+	
+	if FreeLingConnMap[worker_id][lang] == nil {
+		if FreeLingConnMap[worker_id] == nil {
+			FreeLingConnMap[worker_id] = make(map[string]net.Conn)
+		}
+
+		FreeLingConnMap[worker_id][lang], err = connectToFreeLing(FreeLingHostsByLang[lang])
+		if err != nil {
+			FreeLingConnMap[worker_id][lang] = nil
+			return nil, err
+		}
 	}
-	return
+
+	return FreeLingConnMap[worker_id][lang], nil
 }
