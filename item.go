@@ -15,6 +15,7 @@ type Item struct {
 	WordChecksum []string
 }
 
+// FreeLing word map
 type MapItem struct {
 	Word  string
 	Freq  int

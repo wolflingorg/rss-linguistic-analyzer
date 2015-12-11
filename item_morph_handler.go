@@ -1,3 +1,5 @@
+// Item morph handler
+// Get task and create WordMap and WordChecksums from it
 package main
 
 import (
@@ -49,6 +51,9 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	}
 }
 
+// get word map from string
+// all words conwerts to their lemma
+// we get only verbs, nouns, dates, adjectivs
 func getWordMap(msg string, c net.Conn) (result []MapItem) {
 	status, err := getMorphResult(msg, c)
 	if err != nil {
@@ -75,6 +80,8 @@ func getWordMap(msg string, c net.Conn) (result []MapItem) {
 	return
 }
 
+// util
+// try to find word in the word map
 func findInWordMap(m []MapItem, s string) bool {
 	for i, value := range m {
 		if value.Word == s {
@@ -86,6 +93,8 @@ func findInWordMap(m []MapItem, s string) bool {
 	return false
 }
 
+// we create only one connection to FreeLing server per worker
+// this function try to get connection or create it
 func getConnection(worker_id int, lang string) (net.Conn, error) {
 	var err error
 	
