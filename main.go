@@ -14,7 +14,6 @@ var (
 	CONFIG_PATH         string                      // PATH to ini file
 	config              = new(Config)               // Config struct
 	db                  *mgo.Database               // Data Base
-	WorkQueue           chan tm.WorkRequest         // A buffered channel that we can send work requests on
 	FreeLingHostsByLang map[string]string           // FL hosts by lang
 	FreeLingConnMap     map[int]map[string]net.Conn // Map of connections by worker_id and lang
 )
@@ -26,9 +25,6 @@ func main() {
 
 	// config
 	LoadConfig(config, CONFIG_PATH)
-
-	// channel for tasks
-	WorkQueue = make(chan tm.WorkRequest, 10*config.Handler.Tasks)
 
 	// connect to db
 	session, err := mgo.Dial(strings.Join(config.Db.Host, ","))
@@ -48,7 +44,7 @@ func main() {
 	FreeLingConnMap = make(map[int]map[string]net.Conn)
 
 	// start task manager
-	tm.StartDispatcher(config.Handler.Workers, WorkQueue, ItemMorphHandler)
+	tm.StartDispatcher(config.Handler.Workers, ItemMorphHandler)
 
 	for {
 		select {

@@ -12,16 +12,26 @@ func AddTasksHandler() {
 	c := db.C("news")
 	var items []Item
 
-	// try to find feeds to update
-	err := c.Find(bson.M{"wordmap": bson.M{"$exists": false}}).Limit(config.Handler.Tasks).All(&items)
+	// try to find news
+	limit := config.Handler.Tasks - tm.GetTasksCount()
+	if limit <= 0 {
+		// TODO delete this
+		fmt.Printf("\nTasks didnt add. %d active tasks count\n", tm.GetTasksCount())
+		return
+	}
+		
+	err := c.Find(bson.M{
+		"wordmap": bson.M{"$exists": false},
+		"_id": bson.M{"$nin": tm.GetTasksIds()},
+	}).Limit(limit).All(&items)
 	if err != nil {
 		panic(err)
 	}
 
 	// set items to work channel
-	for i, value := range items {
-		work := tm.WorkRequest{Id: i, Data: value}
-		WorkQueue <- work
+	for _, value := range items {
+		work := tm.WorkRequest{Id: value.Id, Data: value}
+		tm.NewWork(work)
 	}
 
 	// TODO delete this
