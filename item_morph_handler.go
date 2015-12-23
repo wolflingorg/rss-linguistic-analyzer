@@ -5,7 +5,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"net"
 	"strings"
@@ -19,16 +18,15 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	if item, ok := work.Data.(Item); ok {
 		c, err := getConnection(worker_id, item.Lang)
 		if err != nil {
-			// TODO delete this
-			fmt.Printf("\tWorker %d connection ERROR\n", worker_id)
+			LogError.Printf("Worker %d connection ERROR\n", worker_id)
 			return
 		}
 
 		word_map := getWordMap(item.Title+" "+item.Content, c)
 
 		if len(word_map) == 0 {
-			// TODO delete this
-			fmt.Printf("\tWorker %d FAILED\n", worker_id)
+			n.Update(bson.M{"_id": item.Id}, bson.M{"$set": bson.M{"errors": item.Errors + 1}})
+			LogError.Printf("Worker %d FAILED with News id %s\n", worker_id, item.Id)
 			return
 		}
 
@@ -46,8 +44,7 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 			"wordchecksum": word_checksum,
 		}})
 
-		// TODO delete this
-		fmt.Printf("\tWorker %d OK\n", worker_id)
+		LogInfo.Printf("\tWorker %d OK\n", worker_id)
 	}
 }
 
@@ -97,7 +94,7 @@ func findInWordMap(m []MapItem, s string) bool {
 // this function try to get connection or create it
 func getConnection(worker_id int, lang string) (net.Conn, error) {
 	var err error
-	
+
 	if FreeLingConnMap[worker_id][lang] == nil {
 		if FreeLingConnMap[worker_id] == nil {
 			FreeLingConnMap[worker_id] = make(map[string]net.Conn)
@@ -107,6 +104,8 @@ func getConnection(worker_id int, lang string) (net.Conn, error) {
 		if err != nil {
 			FreeLingConnMap[worker_id][lang] = nil
 			return nil, err
+		} else {
+			LogInfo.Printf("Worker %d connected to Freeling\n", worker_id)
 		}
 	}
 

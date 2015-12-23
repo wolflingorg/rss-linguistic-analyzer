@@ -4,7 +4,9 @@ import (
 	"flag"
 	//"fmt"
 	"gopkg.in/mgo.v2"
+	"log"
 	"net"
+	"os"
 	"strings"
 	tm "task-manager"
 	"time"
@@ -16,6 +18,8 @@ var (
 	db                  *mgo.Database               // Data Base
 	FreeLingHostsByLang map[string]string           // FL hosts by lang
 	FreeLingConnMap     map[int]map[string]net.Conn // Map of connections by worker_id and lang
+	LogError            *log.Logger                 // Error logger
+	LogInfo             *log.Logger                 // Info logger
 )
 
 func main() {
@@ -26,10 +30,24 @@ func main() {
 	// config
 	LoadConfig(config, CONFIG_PATH)
 
+	// log file
+	f, err := os.OpenFile(config.LogPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		log.Fatalf("Error opening log file: %s\n", err)
+	}
+
+	// loggers
+	LogInfo = log.New(f,
+		"INFO: ",
+		log.Ldate|log.Ltime)
+	LogError = log.New(f,
+		"ERROR: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
 	// connect to db
 	session, err := mgo.Dial(strings.Join(config.Db.Host, ","))
 	if err != nil {
-		panic(err)
+		LogError.Fatalf("Couldnt connect to mongodb server %s", err)
 	}
 	defer session.Close()
 	session.SetMode(mgo.Monotonic, true)

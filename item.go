@@ -13,6 +13,7 @@ type Item struct {
 	Lang         string
 	WordMap      []MapItem
 	WordChecksum []string
+	Errors       uint
 }
 
 // FreeLing word map
