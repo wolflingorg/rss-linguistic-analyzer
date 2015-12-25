@@ -62,7 +62,11 @@ func main() {
 	FreeLingConnMap = make(map[int]map[string]net.Conn)
 
 	// start task manager
-	tm.StartDispatcher(config.Handler.Workers, ItemMorphHandler)
+	tm.StartDispatcher(tm.TaskManager{
+		NumWorkers: config.Handler.Workers,
+		NumTasks:   config.Handler.Tasks,
+		Handler:    ItemMorphHandler,
+	})
 
 	for {
 		select {

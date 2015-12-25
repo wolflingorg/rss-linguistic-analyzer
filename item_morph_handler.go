@@ -43,8 +43,6 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 			"wordmap":      word_map,
 			"wordchecksum": word_checksum,
 		}})
-
-		LogInfo.Printf("\tWorker %d OK\n", worker_id)
 	}
 }
 
