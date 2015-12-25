@@ -16,10 +16,12 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 
 	// check that work.Data equal Item interface
 	if item, ok := work.Data.(Item); ok {
-		c, err := getConnection(worker_id, item.Lang)
+		c, err := connectToFreeLing(FreeLingHostsByLang[item.Lang])
 		if err != nil {
 			LogError.Printf("Worker %d connection ERROR\n", worker_id)
 			return
+		} else {
+			LogInfo.Printf("Worker %d connection OK\n", worker_id)
 		}
 
 		word_map := getWordMap(item.Title+" "+item.Content, c)
@@ -43,6 +45,9 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 			"wordmap":      word_map,
 			"wordchecksum": word_checksum,
 		}})
+
+		LogInfo.Printf("Worker %d OK\n", worker_id)
+		c.Close()
 	}
 }
 
@@ -86,26 +91,4 @@ func findInWordMap(m []MapItem, s string) bool {
 	}
 
 	return false
-}
-
-// we create only one connection to FreeLing server per worker
-// this function try to get connection or create it
-func getConnection(worker_id int, lang string) (net.Conn, error) {
-	var err error
-
-	if FreeLingConnMap[worker_id][lang] == nil {
-		if FreeLingConnMap[worker_id] == nil {
-			FreeLingConnMap[worker_id] = make(map[string]net.Conn)
-		}
-
-		FreeLingConnMap[worker_id][lang], err = connectToFreeLing(FreeLingHostsByLang[lang])
-		if err != nil {
-			FreeLingConnMap[worker_id][lang] = nil
-			return nil, err
-		} else {
-			LogInfo.Printf("Worker %d connected to Freeling\n", worker_id)
-		}
-	}
-
-	return FreeLingConnMap[worker_id][lang], nil
 }

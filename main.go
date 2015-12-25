@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	//"fmt"
 	"gopkg.in/mgo.v2"
 	"log"
-	"net"
 	"os"
 	"strings"
 	tm "task-manager"
@@ -13,13 +11,12 @@ import (
 )
 
 var (
-	CONFIG_PATH         string                      // PATH to ini file
-	config              = new(Config)               // Config struct
-	db                  *mgo.Database               // Data Base
-	FreeLingHostsByLang map[string]string           // FL hosts by lang
-	FreeLingConnMap     map[int]map[string]net.Conn // Map of connections by worker_id and lang
-	LogError            *log.Logger                 // Error logger
-	LogInfo             *log.Logger                 // Info logger
+	CONFIG_PATH         string            // PATH to ini file
+	config              = new(Config)     // Config struct
+	db                  *mgo.Database     // Data Base
+	FreeLingHostsByLang map[string]string // FL hosts by lang
+	LogError            *log.Logger       // Error logger
+	LogInfo             *log.Logger       // Info logger
 )
 
 func main() {
@@ -59,7 +56,6 @@ func main() {
 		params := strings.Split(value, "@")
 		FreeLingHostsByLang[params[0]] = params[1]
 	}
-	FreeLingConnMap = make(map[int]map[string]net.Conn)
 
 	// start task manager
 	tm.StartDispatcher(tm.TaskManager{
