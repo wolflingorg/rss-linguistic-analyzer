@@ -2,8 +2,10 @@
 package main
 
 import (
+	"errors"
 	"gopkg.in/ini.v1"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -28,4 +30,16 @@ func LoadConfig(config *Config, CONFIG_PATH string) {
 	if err != nil {
 		log.Fatalf("Couldnt parse config file: %s\n", err)
 	}
+}
+
+// Get FreeLing host by lang
+func (this *Config) GetFreeLingHostByLang(lang string) (string, error) {
+	for _, value := range this.FreeLing.Hosts {
+		params := strings.Split(value, "@")
+		if params[0] == lang {
+			return params[1], nil
+		}
+	}
+
+	return "", errors.New("Couldnt find Host by this lang")
 }

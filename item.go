@@ -13,12 +13,14 @@ type Item struct {
 	Lang         string
 	WordMap      []MapItem
 	WordChecksum []string
+	WordsCount   uint
+	Status       uint
 	Errors       uint
 }
 
 // FreeLing word map
 type MapItem struct {
 	Word  string
-	Freq  int
+	Freq  uint
 	Morph string
 }

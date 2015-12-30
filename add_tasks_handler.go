@@ -7,6 +7,8 @@ import (
 	tm "task-manager"
 )
 
+var tasks_count int = 0
+
 func AddTasksHandler() {
 	c := db.C("news")
 	var items []Item
@@ -19,12 +21,9 @@ func AddTasksHandler() {
 	}
 
 	err := c.Find(bson.M{
-		"$or": []interface{}{
-			bson.M{"errors": bson.M{"$lt": 3}},
-			bson.M{"errors": bson.M{"$exists": false}},
-		},
-		"wordmap": bson.M{"$exists": false},
-		"_id":     bson.M{"$nin": tm.GetTasksIds()},
+		"status": 1,
+		"errors": bson.M{"$lt": 3},
+		"_id":    bson.M{"$nin": tm.GetTasksIds()},
 	}).Limit(limit).All(&items)
 	if err != nil {
 		LogError.Fatalf("Couldnt get mongodb result %s\n", err)
@@ -36,7 +35,13 @@ func AddTasksHandler() {
 		tm.NewWork(work)
 	}
 
-	if len(items) > 0 {
+	// create new version of dictionary
+	if len(items) == 0 && tasks_count > 0 {
+		CreateDictionaryVersion(dict_version)
+		dict_version += 1
+		tasks_count = 0
+	} else {
+		tasks_count += len(items)
 		LogInfo.Printf("%d tasks added\n", len(items))
 	}
 }

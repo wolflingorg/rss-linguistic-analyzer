@@ -5,6 +5,7 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"net"
 	"strings"
@@ -13,18 +14,25 @@ import (
 
 func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	n := db.C("news")
+	d := db.C("dictionary")
 
 	// check that work.Data equal Item interface
 	if item, ok := work.Data.(Item); ok {
-		c, err := connectToFreeLing(FreeLingHostsByLang[item.Lang])
+		host, _ := config.GetFreeLingHostByLang(item.Lang)
+		c, err := connectToFreeLing(host)
+		defer c.Close()
 		if err != nil {
 			LogError.Printf("Worker %d connection ERROR\n", worker_id)
 			return
-		} else {
-			LogInfo.Printf("Worker %d connection OK\n", worker_id)
 		}
 
-		word_map := getWordMap(item.Title+" "+item.Content, c)
+		var content string
+		if item.Title == item.Content {
+			content = item.Title
+		} else {
+			content = item.Title + " " + item.Content
+		}
+		word_map := getWordMap(content, c)
 
 		if len(word_map) == 0 {
 			n.Update(bson.M{"_id": item.Id}, bson.M{"$set": bson.M{"errors": item.Errors + 1}})
@@ -44,10 +52,25 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 		n.Update(bson.M{"_id": item.Id}, bson.M{"$set": bson.M{
 			"wordmap":      word_map,
 			"wordchecksum": word_checksum,
+			"wordscount":   len(word_checksum),
+			"status":       2,
+			"dictversion":  dict_version,
 		}})
 
-		LogInfo.Printf("Worker %d OK\n", worker_id)
-		c.Close()
+		// update dictionary
+		for _, value := range word_map {
+			var doc interface{}
+
+			change := mgo.Change{
+				Update: bson.M{
+					"$inc": bson.M{"cnt": 1},
+					"$set": bson.M{"ver": dict_version, "lang": item.Lang},
+				},
+				ReturnNew: true,
+				Upsert:    true,
+			}
+			d.Find(bson.M{"word": value.Word, "lang": item.Lang}).Apply(change, &doc)
+		}
 	}
 }
 

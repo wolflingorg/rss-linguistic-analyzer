@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	CONFIG_PATH         string            // PATH to ini file
-	config              = new(Config)     // Config struct
-	db                  *mgo.Database     // Data Base
-	FreeLingHostsByLang map[string]string // FL hosts by lang
-	LogError            *log.Logger       // Error logger
-	LogInfo             *log.Logger       // Info logger
+	CONFIG_PATH  string        // PATH to ini file
+	config       = new(Config) // Config struct
+	db           *mgo.Database // Data Base
+	LogError     *log.Logger   // Error logger
+	LogInfo      *log.Logger   // Info logger
+	dict_version int
 )
 
 func main() {
@@ -50,12 +50,9 @@ func main() {
 	session.SetMode(mgo.Monotonic, true)
 	db = session.DB("rss")
 
-	// freeling hosts by lang
-	FreeLingHostsByLang = make(map[string]string)
-	for _, value := range config.FreeLing.Hosts {
-		params := strings.Split(value, "@")
-		FreeLingHostsByLang[params[0]] = params[1]
-	}
+	// current dict version
+	dict := GetLastDictionaryVersion()
+	dict_version = dict.Id + 1
 
 	// start task manager
 	tm.StartDispatcher(tm.TaskManager{

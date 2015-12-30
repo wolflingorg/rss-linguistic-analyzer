@@ -23,7 +23,7 @@ func getMorphResult(msg string, c net.Conn) (status string, err error) {
 	fmt.Fprintf(c, "%s%c", msg, '\x00')
 	status, err = bufio.NewReader(c).ReadString('\x00')
 	if err != nil {
-		LogError.Printf("Couldnt get Morph results %s", err)
+		LogError.Printf("Couldnt get Freeling results %s", err)
 		return
 	}
 
