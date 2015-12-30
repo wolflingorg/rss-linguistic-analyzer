@@ -48,12 +48,20 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 			word_checksum = append(word_checksum, hex.EncodeToString(hasher.Sum(nil)))
 		}
 
+		// status
+		var status uint
+		if len(word_checksum) < 5 {
+			status = 0
+		} else {
+			status = 2
+		}
+
 		// update news info
 		n.Update(bson.M{"_id": item.Id}, bson.M{"$set": bson.M{
 			"wordmap":      word_map,
 			"wordchecksum": word_checksum,
 			"wordscount":   len(word_checksum),
-			"status":       2,
+			"status":       status,
 			"dictversion":  dict_version,
 		}})
 
