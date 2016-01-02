@@ -71,6 +71,7 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 func getWordMap(msg string, c net.Conn) (result []MapItem) {
 	status, err := getMorphResult(msg, c)
 	if err != nil {
+		LogError.Printf("Couldnt get Freeling results %s", err)
 		return nil
 	}
 
