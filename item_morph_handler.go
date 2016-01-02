@@ -5,7 +5,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"net"
 	"strings"
@@ -14,7 +13,6 @@ import (
 
 func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 	n := db.C("news")
-	d := db.C("dictionary")
 
 	// check that work.Data equal Item interface
 	if item, ok := work.Data.(Item); ok {
@@ -64,21 +62,6 @@ func ItemMorphHandler(work tm.WorkRequest, worker_id int) {
 			"status":       status,
 			"dictversion":  dict_version,
 		}})
-
-		// update dictionary
-		for _, value := range word_map {
-			var doc interface{}
-
-			change := mgo.Change{
-				Update: bson.M{
-					"$inc": bson.M{"cnt": 1},
-					"$set": bson.M{"ver": dict_version, "lang": item.Lang},
-				},
-				ReturnNew: true,
-				Upsert:    true,
-			}
-			d.Find(bson.M{"word": value.Word, "lang": item.Lang}).Apply(change, &doc)
-		}
 	}
 }
 
